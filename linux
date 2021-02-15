@@ -10,4 +10,12 @@
            
            linux中的线程其实只是指定了共享资源的几个进程，对于每个线程来讲都会维护一个task_struct结构。线程是linux实现资源共享的重要手段
            
-进程的销毁：一个进程终结时，内核需要告知其父进程
+进程的销毁：一个进程终结时，内核需要告知其父进程，一般通过do_exit()来结束进程
+           1.task_struct中标志成员设置为PF_EXITING
+           2.调用del_timer_sync删除定时器，确保没有定时器任务在排队，也没有定时器任务在执行
+           3.若记账功能开启，则调用acct_update_intergrals输出记账信息
+           4.调用exit_mm函数释放进程占用的mm_struct,若此内存没有被其他进程共享使用，则释放
+           5.调用sem_exit()
+           6.调用exit_files()和exit_fs()，递减文件引用计数和文件描述符，若引用计数为0则释放
+           7.置位task_struct中的exit_code退出代码号
+           8.调用exit_notify向父进程发送信号，给子进程找养父
